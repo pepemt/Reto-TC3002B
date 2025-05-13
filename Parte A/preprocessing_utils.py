@@ -127,6 +127,13 @@ def lemmatize_df(df):
     df['text'] = df['text'].apply(lambda text: lemmatize_text(text, lemmatizer))
     return df
 
+def eliminate_empty_rows(df):
+    """
+    Elimina filas vacías del DataFrame.
+    """
+    df = df.dropna(subset=['title', 'text', 'is_suicide'])
+    return df
+
 def preprocess_text_df(df):
     """
     Ejecuta el pipeline completo de preprocesamiento de texto:
@@ -138,7 +145,9 @@ def preprocess_text_df(df):
     - Elimina stopwords.
     - Lematiza el texto.
     """
-    download_nltk_resources()
+    
+    # download_nltk_resources()
+    df = eliminate_empty_rows(df)
     df = df[['title', 'text', 'is_suicide']].dropna(subset=['title', 'text'])
     df = fix_and_lowercase_df(df)
     df = expand_contractions_df(df)
@@ -147,3 +156,4 @@ def preprocess_text_df(df):
     df = remove_stopwords_df(df)
     df = lemmatize_df(df)
     return df
+

@@ -13,8 +13,12 @@ pyahocorasick==2.1.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
 regex==2024.11.6
+scikit-learn==1.6.1
+scipy==1.15.3
 six==1.17.0
 textsearch==0.0.24
+threadpoolctl==3.6.0
 tqdm==4.67.1
 tzdata==2025.2
 wcwidth==0.2.13
+xgboost==3.0.0

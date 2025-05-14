@@ -1,42 +1,36 @@
-from preprocessing_utils import preprocess_text_df
 from sklearn.model_selection import KFold
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.naive_bayes import MultinomialNB
 import pandas as pd
 import numpy as np
 
+# Cargar los datos sin preprocesamiento
 path = './Parte A/data_train.xlsx'
 df = pd.read_excel(path)
-df = preprocess_text_df(df)
+# Usar las columnas originales sin preprocesar
+X_text = df['title'] + ' ' + df['text']
 
-df.to_excel("./Parte A/data_train_cleaned.xlsx", index=False)
-print("✅ Data cleaned and saved to data_train_cleaned.xlsx")
+y = df['is_suicide'].map({'no': 0, 'yes': 1})
 
-X_text = df['title'] + ' ' + df['text'] 
-y = df['is_suicide'].map({'no': 0, 'yes': 1}) 
-
-vectorizer = TfidfVectorizer(
-    ngram_range=(1, 3),       # Unigramas, bigramas, trigramas
-    max_df=0.95,              # Ignora términos muy comunes
-    min_df=2,                 # Ignora términos muy raros
-    max_features=10000,      # Limita el tamaño del vocabulario
-    sublinear_tf=True,       # Escala logarítmicamente
-    stop_words='english'     # Elimina stopwords adicionales
-)
+# Vectorización TF-IDF
+vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(X_text)
 
+# Configuración de validación cruzada
 kf = KFold(n_splits=10, shuffle=True, random_state=50)
 
+# Modelos a probar
 models = {
     "SVM (RBF)": SVC(kernel='rbf', C=1.0),
     "SVM (Polynomial)": SVC(kernel='poly', degree=3, C=1.0),
-    "SVM (Lineal)" : SVC(kernel='linear', C=1.0),
-    "SVM (Sigmond)" : SVC(kernel='sigmoid', C=1.0),
-    "Random Forest": MultinomialNB(alpha=0.5),
+    "SVM (Lineal)": SVC(kernel='linear', C=1.0),
+    "SVM (Sigmoid)": SVC(kernel='sigmoid', C=1.0),
+    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=50),
 }
 
+# Validación cruzada para cada modelo
 for name, model in models.items():
     print(f"\n🔍 Modelo: {name}")
     accuracies = []

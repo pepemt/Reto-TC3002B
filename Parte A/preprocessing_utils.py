@@ -2,7 +2,9 @@ import pandas as pd
 import re
 import ftfy
 import nltk
+import unicodedata
 import contractions
+import emoji
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
@@ -16,6 +18,9 @@ def download_nltk_resources():
     nltk.download('stopwords')
     nltk.download('wordnet')
     nltk.download('averaged_perceptron_tagger')
+
+def normalize_unicode(text):
+    return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
 
 def expand_contractions(text):
     """
@@ -31,30 +36,18 @@ def expand_contractions_df(df):
     df['text'] = df['text'].apply(expand_contractions)
     return df
 
-def remove_emojis(text):
+def replace_emojis_with_text(text):
     """
-    Elimina emojis del texto.
+    Reemplaza los emojis en el texto con palabras que los describan.
     """
-    emoji_pattern = re.compile("[" 
-        u"\U0001F600-\U0001F64F"
-        u"\U0001F300-\U0001F5FF"
-        u"\U0001F680-\U0001F6FF"
-        u"\U0001F700-\U0001F77F"
-        u"\U0001F780-\U0001F7FF"
-        u"\U0001F800-\U0001F8FF"
-        u"\U0001F900-\U0001F9FF"
-        u"\U0001FA00-\U0001FA6F"
-        u"\U00002702-\U000027B0"
-        u"\U000024C2-\U0001F251"
-        "]+", flags=re.UNICODE)
-    return emoji_pattern.sub(r'', text)
+    return emoji.demojize(text)
 
-def remove_emojis_df(df):
+def replace_emojis_with_text_df(df):
     """
-    Aplica la eliminación de emojis a las columnas 'title' y 'text' del DataFrame.
+    Aplica el reemplazo de emojis por palabras descriptivas a las columnas 'title' y 'text' del DataFrame.
     """
-    df['title'] = df['title'].apply(remove_emojis)
-    df['text'] = df['text'].apply(remove_emojis)
+    df['title'] = df['title'].apply(replace_emojis_with_text)
+    df['text'] = df['text'].apply(replace_emojis_with_text)
     return df
 
 def clean_text(text):
@@ -134,26 +127,61 @@ def eliminate_empty_rows(df):
     df = df.dropna(subset=['title', 'text', 'is_suicide'])
     return df
 
+def remove_numbers(text):
+    """
+    Elimina los números del texto.
+    """
+    return re.sub(r'\d+', '', text)
+
+def remove_numbers_df(df):
+    """
+    Aplica la eliminación de números a las columnas 'title' y 'text' del DataFrame.
+    """
+    df['title'] = df['title'].apply(remove_numbers)
+    df['text'] = df['text'].apply(remove_numbers)
+    return df
+
+def remove_written_numbers(text):
+    """
+    Elimina números escritos a mano (como 'one', 'two', 'eleven') del texto.
+    """
+    written_numbers = [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", 
+        "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", 
+        "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million", "billion"
+    ]
+    pattern = r'\b(?:' + '|'.join(written_numbers) + r')\b'
+    return re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+def remove_written_numbers_df(df):
+    """
+    Aplica la eliminación de números escritos a mano a las columnas 'title' y 'text' del DataFrame.
+    """
+    df['title'] = df['title'].apply(remove_written_numbers)
+    df['text'] = df['text'].apply(remove_written_numbers)
+    return df
+
 def preprocess_text_df(df):
     """
     Ejecuta el pipeline completo de preprocesamiento de texto:
     - Descarga recursos de NLTK.
     - Arregla y convierte a minúsculas.
     - Expande contracciones.
-    - Elimina emojis.
+    - Reemplaza emojis por palabras descriptivas.
     - Limpia puntuación.
+    - Elimina números y números escritos a mano.
     - Elimina stopwords.
     - Lematiza el texto.
     """
-    
-    # download_nltk_resources()
     df = eliminate_empty_rows(df)
     df = df[['title', 'text', 'is_suicide']].dropna(subset=['title', 'text'])
     df = fix_and_lowercase_df(df)
     df = expand_contractions_df(df)
-    df = remove_emojis_df(df)
+    df = replace_emojis_with_text_df(df)
     df = clean_text_df(df)
+    df = remove_numbers_df(df)  # Elimina números
+    df = remove_written_numbers_df(df)  # Elimina números escritos a mano
     df = remove_stopwords_df(df)
     df = lemmatize_df(df)
     return df
-

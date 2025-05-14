@@ -19,8 +19,6 @@ def download_nltk_resources():
     nltk.download('wordnet')
     nltk.download('averaged_perceptron_tagger')
 
-def normalize_unicode(text):
-    return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
 
 def expand_contractions(text):
     """
@@ -129,9 +127,10 @@ def eliminate_empty_rows(df):
 
 def remove_numbers(text):
     """
-    Elimina los números del texto.
+    Elimina los números del texto y limpia espacios redundantes.
     """
-    return re.sub(r'\d+', '', text)
+    text = re.sub(r'\d+', '', text)
+    return ' '.join(text.split())  # Eliminar espacios redundantes
 
 def remove_numbers_df(df):
     """
@@ -152,7 +151,8 @@ def remove_written_numbers(text):
         "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million", "billion"
     ]
     pattern = r'\b(?:' + '|'.join(written_numbers) + r')\b'
-    return re.sub(pattern, '', text, flags=re.IGNORECASE)
+    text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    return ' '.join(text.split())  # Eliminar espacios redundantes
 
 def remove_written_numbers_df(df):
     """
@@ -174,6 +174,7 @@ def preprocess_text_df(df):
     - Elimina stopwords.
     - Lematiza el texto.
     """
+    download_nltk_resources()
     df = eliminate_empty_rows(df)
     df = df[['title', 'text', 'is_suicide']].dropna(subset=['title', 'text'])
     df = fix_and_lowercase_df(df)

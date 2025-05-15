@@ -1,16 +1,12 @@
 from preprocessing_utils import preprocess_text_df
 from sklearn.model_selection import KFold
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import MultinomialNB
-import xgboost as xgb
 import pandas as pd
 import numpy as np
+from imblearn.over_sampling import SMOTE
 
 # === Entrenamiento con preprocesamiento optimizado ===
 path_train = './Data/data_train.xlsx'
@@ -22,43 +18,51 @@ X_text_train = df_train['title'] + ' ' + df_train['text']
 y_train = df_train['is_suicide'].map({'no': 0, 'yes': 1})
 
 vectorizer = TfidfVectorizer(
-    ngram_range=(1, 3),
+    ngram_range=(1, 4),
     max_df=0.95,
     min_df=2,
     max_features=10000,
     sublinear_tf=True,
-    stop_words='english'
+    stop_words='english',
+    lowercase=True
 )
 X_train = vectorizer.fit_transform(X_text_train)
+
+smote = SMOTE(random_state=42)
+X_train, y_train = smote.fit_resample(X_train, y_train)
 
 kf = KFold(n_splits=10, shuffle=True, random_state=50)
 
 models = {
-    "Logistic Regression": LogisticRegression(max_iter=1000),
-    "Random Forest": RandomForestClassifier(),
-    "SVM": SVC(probability=True),
-    "K-Nearest Neighbors": KNeighborsClassifier(),
-    "Decision Tree": DecisionTreeClassifier(),
-    "Naive Bayes": MultinomialNB(),
-    "XGBoost": xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+    "Random Forest": RandomForestClassifier(
+        max_depth=30,
+        max_features='sqrt',
+        min_samples_leaf=5,
+        min_samples_split=2,
+        n_estimators=500,
+        class_weight='balanced'
+    ),
+    "SVM": SVC(
+        probability=True,
+        C=1,
+        gamma='scale',
+        kernel='rbf',
+        class_weight='balanced'
+    ),
 }
 
-# Resultados para exportar
 results_cv = []
+roc_data = []
+conf_matrices = []
 
 print("=== Testing con Validación Cruzada (preprocesamiento optimizado) ===")
 for name, model in models.items():
     print(f"\n🔍 Modelo: {name}")
-    accuracies = []
-    f1s = []
-    precisions = []
-    recalls = []
-    aucs = []
-    fold = 1
+    accuracies, f1s, precisions, recalls, aucs = [], [], [], [], []
 
-    for train_index, val_index in kf.split(X_train):
+    for fold, (train_index, val_index) in enumerate(kf.split(X_train), start=1):
         X_tr, X_val = X_train[train_index], X_train[val_index]
-        y_tr, y_val = y_train.iloc[train_index], y_train.iloc[val_index]
+        y_tr, y_val = y_train[train_index], y_train[val_index]
 
         model.fit(X_tr, y_tr)
         y_pred = model.predict(X_val)
@@ -76,16 +80,28 @@ for name, model in models.items():
         recalls.append(recall)
         aucs.append(auc)
 
+        # Guardar datos para curva ROC
+        for true, prob in zip(y_val, y_pred_proba):
+            roc_data.append({"Modelo": name, "Fold": fold, "y_true": true, "y_score": prob})
+
+        # Guardar matriz de confusión de último fold
+        if fold == kf.get_n_splits():
+            cm = confusion_matrix(y_val, y_pred)
+            cm_df = pd.DataFrame(cm, columns=["Pred No", "Pred Yes"], index=["Real No", "Real Yes"])
+            cm_df['Modelo'] = name
+            cm_df['Fold'] = fold
+            conf_matrices.append(cm_df.reset_index())
+
         print(f"Fold {fold} - Accuracy: {acc:.4f} - F1: {f1:.4f} - Precision: {precision:.4f} - Recall: {recall:.4f} - AUC: {auc:.4f}")
-        fold += 1
-    print(f"\n🔍 Resultados Promedio para {name}:"
-          f"\nPromedio Accuracy: {np.mean(accuracies):.4f}"
-          f"\nPromedio F1 Score: {np.mean(f1s):.4f}"
-          f"\nPromedio Precision: {np.mean(precisions):.4f}"
-          f"\nPromedio Recall: {np.mean(recalls):.4f}"
-          f"\nPromedio AUC: {np.nanmean(aucs):.4f}")
-    
+
+    print(f"\nResultados finales para {name}:")
+    print(f"    Promedio Accuracy: {np.mean(accuracies):.4f}")
+    print(f"    Promedio F1 Score: {np.mean(f1s):.4f}")
+    print(f"    Promedio Precision: {np.mean(precisions):.4f}")
+    print(f"    Promedio Recall: {np.mean(recalls):.4f}")
+    print(f"    Promedio AUC: {np.nanmean(aucs):.4f}")  # Manejar NaN en caso de que AUC no se calcule
     # Guardar resultados
+
     results_cv.append({
         "Modelo": name,
         "Accuracy": np.mean(accuracies),
@@ -95,9 +111,10 @@ for name, model in models.items():
         "AUC": np.nanmean(aucs)
     })
 
-# Guardar resultados de validación cruzada
-df_results_cv = pd.DataFrame(results_cv)
-df_results_cv.to_excel("./Data/resultados_validacion_cruzada.xlsx", index=False)
+# Guardar resultados
+pd.DataFrame(results_cv).to_excel("./Data/resultados_validacion_cruzada.xlsx", index=False)
+pd.DataFrame(roc_data).to_excel("./Data/roc_data.xlsx", index=False)
+pd.concat(conf_matrices).to_excel("./Data/matrices_confusion.xlsx", index=False)
 
 # === Validación final optimizada ===
 path_val = './Data/data_validation.xlsx'

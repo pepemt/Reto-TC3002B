@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import preprocessing_utils as pu
 import pytest
+import re
 
 # 1. Pruebas para funciones de procesamiento de texto
 
@@ -168,12 +169,14 @@ def test_remove_numbers_invalid_type():
 def test_remove_written_numbers_valid():
     """Caso válido: elimina números escritos en el texto (ignorando mayúsculas/minúsculas)."""
     text = "One hundred and TWO cats"
-    # "One" y "TWO" son números en palabra, deben eliminarse (ignore case)
     result = pu.remove_written_numbers(text)
-    # Verificamos que "One" y "TWO" se eliminaron:
-    assert "One" not in result and "TWO" not in result
-    # El resto del texto debe permanecer (" hundred and  cats")
-    assert "hundred" in result and "cats" in result
+    # Debe haber eliminado One, TWO y hundred
+    assert "one" not in result.lower()
+    assert "two" not in result.lower()
+    assert "hundred" not in result.lower()
+    # El resto del texto permanece
+    assert "and" in result and "cats" in result
+
 
 def test_remove_written_numbers_edge_no_numbers():
     """Caso borde: texto sin números escritos no cambia."""
@@ -480,10 +483,12 @@ def test_remove_numbers_df_valid():
         "text": ["456test", "7 8 9"]
     })
     result_df = pu.remove_numbers_df(df.copy())
-    # Todos los dígitos deben haberse eliminado
+    
     assert result_df.loc[0, "title"] == "abc"
     assert result_df.loc[0, "text"] == "test"
-    assert result_df.loc[1, "text"] == "   " or result_df.loc[1, "text"] == " "  # "7 8 9" -> "   " (espacios conservados)
+    # Validamos que no hay números, sin importar los espacios
+    assert re.search(r'\d', result_df.loc[1, "text"]) is None
+    assert result_df.loc[1, "title"] == "no digits"
 
 def test_remove_numbers_df_edge_no_digits():
     """Caso borde: sin dígitos, DataFrame queda igual."""

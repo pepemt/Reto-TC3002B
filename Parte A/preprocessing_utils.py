@@ -150,9 +150,12 @@ def remove_written_numbers(text):
         "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", 
         "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million", "billion"
     ]
+    # Crear un patrón para buscar palabras numéricas
     pattern = r'\b(?:' + '|'.join(written_numbers) + r')\b'
+    # Reemplazar las palabras numéricas con una cadena vacía
     text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-    return ' '.join(text.split())  # Eliminar espacios redundantes
+    # Eliminar espacios redundantes
+    return ' '.join(text.split())
 
 def remove_written_numbers_df(df):
     """

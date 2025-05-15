@@ -1,9 +1,8 @@
-from preprocessing_utils import preprocess_text_df
+from Utils.preprocessing_utils import preprocess_text_df
+from Utils.models_utils import Models
 from sklearn.model_selection import KFold
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 import pandas as pd
 import numpy as np
 from imblearn.over_sampling import SMOTE
@@ -17,39 +16,15 @@ df_train.to_excel("./Data/data_train_cleaned.xlsx", index=False)
 X_text_train = df_train['title'] + ' ' + df_train['text']
 y_train = df_train['is_suicide'].map({'no': 0, 'yes': 1})
 
-vectorizer = TfidfVectorizer(
-    ngram_range=(1, 4),
-    max_df=0.95,
-    min_df=2,
-    max_features=10000,
-    sublinear_tf=True,
-    stop_words='english',
-    lowercase=True
-)
-X_train = vectorizer.fit_transform(X_text_train)
-
+vectorizer = Models.get_models()
 smote = SMOTE(random_state=42)
+
+X_train = vectorizer.fit_transform(X_text_train)
 X_train, y_train = smote.fit_resample(X_train, y_train)
 
 kf = KFold(n_splits=10, shuffle=True, random_state=50)
 
-models = {
-    "Random Forest": RandomForestClassifier(
-        max_depth=30,
-        max_features='sqrt',
-        min_samples_leaf=5,
-        min_samples_split=2,
-        n_estimators=500,
-        class_weight='balanced'
-    ),
-    "SVM": SVC(
-        probability=True,
-        C=1,
-        gamma='scale',
-        kernel='rbf',
-        class_weight='balanced'
-    ),
-}
+models = Models.get_models()
 
 results_cv = []
 roc_data = []

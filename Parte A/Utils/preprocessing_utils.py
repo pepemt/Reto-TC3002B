@@ -177,7 +177,7 @@ def preprocess_text_df(df):
     - Elimina stopwords.
     - Lematiza el texto.
     """
-    #download_nltk_resources()
+    download_nltk_resources()
     df = eliminate_empty_rows(df)
     df = df[['title', 'text', 'is_suicide']].dropna(subset=['title', 'text'])
     df = fix_and_lowercase_df(df)

@@ -1,4 +1,4 @@
-from preprocessing_utils import preprocess_text_df
+from Utils.preprocessing_utils import preprocess_text_df
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -52,7 +52,7 @@ grid_rf = GridSearchCV(
 grid_rf.fit(X_train, y_train)
 print("\n✅ Mejores parámetros para Random Forest:", grid_rf.best_params_)
 print("🔝 Mejor F1 (macro):", grid_rf.best_score_)
-    
+
 # === Optimización de SVC ===
 param_grid_svc = {
     'C': [0.01, 0.1, 1, 10, 100],

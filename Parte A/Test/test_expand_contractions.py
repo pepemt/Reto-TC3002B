@@ -1,7 +1,7 @@
 # test_preprocessing_utils.py
 import pandas as pd
 import numpy as np
-import preprocessing_utils as pu
+import Utils.preprocessing_utils as pu
 import pytest
 import re
 

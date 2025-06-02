@@ -4,6 +4,8 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
 import pandas as pd
 import numpy as np
+import os
+import joblib  # Para guardar modelos
 
 # === Entrenamiento con preprocesamiento optimizado ===
 path_train = './Data/data_train.xlsx'
@@ -20,13 +22,16 @@ smote = Models.get_smote()
 X_train = vectorizer.fit_transform(X_text_train)
 X_train, y_train = smote.fit_resample(X_train, y_train)
 
-kf = KFold(n_splits=10, shuffle=True, random_state=50) # 50
+kf = KFold(n_splits=10, shuffle=True, random_state=50)
 
 models = Models.get_models()
 
 results_cv = []
 roc_data = []
 conf_matrices = []
+
+# Crear carpeta para modelos
+os.makedirs("./Modelos_entrenados", exist_ok=True)
 
 print("=== Testing con Validación Cruzada (preprocesamiento optimizado) ===")
 for name, model in models.items():
@@ -53,11 +58,9 @@ for name, model in models.items():
         recalls.append(recall)
         aucs.append(auc)
 
-        # Guardar datos para curva ROC
         for true, prob in zip(y_val, y_pred_proba):
             roc_data.append({"Modelo": name, "Fold": fold, "y_true": true, "y_score": prob})
 
-        # Guardar matriz de confusión de último fold
         if fold == kf.get_n_splits():
             cm = confusion_matrix(y_val, y_pred)
             cm_df = pd.DataFrame(cm, columns=["Pred No", "Pred Yes"], index=["Real No", "Real Yes"])
@@ -65,15 +68,12 @@ for name, model in models.items():
             cm_df['Fold'] = fold
             conf_matrices.append(cm_df.reset_index())
 
-        #print(f"Fold {fold} - Accuracy: {acc:.4f} - F1: {f1:.4f} - Precision: {precision:.4f} - Recall: {recall:.4f} - AUC: {auc:.4f}")
-
     print(f"\nResultados finales para {name}:")
     print(f"    Promedio Accuracy: {np.mean(accuracies):.4f}")
     print(f"    Promedio F1 Score: {np.mean(f1s):.4f}")
     print(f"    Promedio Precision: {np.mean(precisions):.4f}")
     print(f"    Promedio Recall: {np.mean(recalls):.4f}")
-    print(f"    Promedio AUC: {np.nanmean(aucs):.4f}")  # Manejar NaN en caso de que AUC no se calcule
-    # Guardar resultados
+    print(f"    Promedio AUC: {np.nanmean(aucs):.4f}")
 
     results_cv.append({
         "Modelo": name,
@@ -83,6 +83,13 @@ for name, model in models.items():
         "Recall": np.mean(recalls),
         "AUC": np.nanmean(aucs)
     })
+
+    # Guardar modelo entrenado
+    model_filename = f"./Modelos_entrenados/{name.replace(' ', '_').lower()}.joblib"
+    joblib.dump(model, model_filename)
+
+# Guardar vectorizer
+joblib.dump(vectorizer, './Modelos_entrenados/vectorizer.joblib')
 
 # Guardar resultados
 pd.DataFrame(results_cv).to_excel("./Data/resultados_validacion_cruzada.xlsx", index=False)

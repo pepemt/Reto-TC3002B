@@ -182,7 +182,7 @@ def preprocess_text_df(df):
     df = df[['title', 'text', 'is_suicide']].dropna(subset=['title', 'text'])
     df = fix_and_lowercase_df(df)
     df = expand_contractions_df(df)
-    #df = replace_emojis_with_text_df(df)
+    df = replace_emojis_with_text_df(df)
     df = clean_text_df(df)
     df = remove_numbers_df(df)  # Elimina números
     df = remove_written_numbers_df(df)  # Elimina números escritos a mano

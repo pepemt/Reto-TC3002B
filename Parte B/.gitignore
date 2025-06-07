@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python environment variables
+.env
+
+# Excel and data outputs
+*.xlsx
+*.csv
+
+# HuggingFace cache
+~/.cache/huggingface
+
+# Logs
+*.log
+
+# dotenv
+*.env
+
+# Pytest cache
+.pytest_cache/

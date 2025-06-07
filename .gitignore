@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/
+*.code-workspace
+
+# pytest cache
+.pytest_cache/
+**/.pytest_cache/
+
+# mypy cache
+.mypy_cache/
+**/.mypy_cache/
+
+# Data and model outputs
+*.log
+*.csv
+*.xlsx
+*.h5
+*.pth
+*.joblib
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Zip and archive files
+*.zip
+
+# Ignore model folders if needed
+Modelos_entrenados/
+
+# Ignore data folders if needed
+Data/
+
+# Ignore secrets (never commit real API keys!)
+*.env
+.env.*

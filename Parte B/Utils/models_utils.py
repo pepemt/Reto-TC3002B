@@ -150,10 +150,3 @@ class Models:
         Devuelve una instancia de SMOTE para sobremuestreo de clases minoritarias.
         """
         return SMOTE(random_state=42)
-    
-    @staticmethod
-    def chatgpt_model():
-        """
-        Placeholder para integración futura de modelos ChatGPT.
-        """
-        ...

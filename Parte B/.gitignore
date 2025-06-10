@@ -22,8 +22,8 @@ Thumbs.db
 .env
 
 # Excel and data outputs
-*.xlsx
-*.csv
+#*.xlsx
+#*.csv
 
 # HuggingFace cache
 ~/.cache/huggingface

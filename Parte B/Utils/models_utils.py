@@ -4,16 +4,34 @@ vectorizadores y técnicas de sobremuestreo para tareas de clasificación de tex
 Incluye modelos clásicos como regresión logística, random forest, SVM, árboles de decisión,
 k-NN, Naive Bayes y XGBoost, así como utilidades para vectorización TF-IDF y SMOTE.
 """
-
+from skorch import NeuralNetClassifier  # type: ignore
+import torch  # type: ignore
+import torch.nn as nn  # type: ignore
+import torch.nn.functional as F  # type: ignore
 from sklearn.linear_model import LogisticRegression # type: ignore
 from sklearn.ensemble import RandomForestClassifier # type: ignore
 from sklearn.svm import SVC # type: ignore
 from sklearn.tree import DecisionTreeClassifier # type: ignore
 from sklearn.naive_bayes import MultinomialNB # type: ignore
 from sklearn.neighbors import KNeighborsClassifier # type: ignore
+from sklearn.ensemble import ExtraTreesClassifier # type: ignore
+import lightgbm as lgb # type: ignore
 from sklearn.feature_extraction.text import TfidfVectorizer # type: ignore
 from imblearn.over_sampling import SMOTE # type: ignore
 import xgboost as xgb
+
+class SimpleFFNN(nn.Module):
+    def __init__(self, input_dim=80):
+        super(SimpleFFNN, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 128)
+        self.dropout = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(128, 1)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
 
 class Models:
     """
@@ -113,6 +131,48 @@ class Models:
         }
         default_params.update(kwargs)
         return xgb.XGBClassifier(**default_params)
+    
+    @staticmethod
+    def extra_trees():
+        return ExtraTreesClassifier(
+            n_estimators=300,
+            max_depth=None,
+            min_samples_split=2,
+            min_samples_leaf=1,
+            max_features='sqrt',
+            bootstrap=False,
+            random_state=42
+        )
+    
+    @staticmethod
+    def lightgbm(**kwargs):
+        default_params = {
+            'objective': 'binary',
+            'learning_rate': 0.05,
+            'num_leaves': 31,
+            'n_estimators': 100,
+            'class_weight': 'balanced',
+            'random_state': 42
+        }
+        default_params.update(kwargs)
+        return lgb.LGBMClassifier(**default_params)
+
+    @staticmethod
+    def _deep_ffnn():
+        """
+        Crea una red neuronal profunda simple usando PyTorch + skorch.
+        """
+        return NeuralNetClassifier(
+            module=SimpleFFNN,
+            module__input_dim=80,
+            max_epochs=20,
+            lr=0.001,
+            optimizer=torch.optim.Adam,
+            iterator_train__shuffle=True,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            criterion=torch.nn.BCEWithLogitsLoss
+        )
+
 
     @staticmethod
     def get_models():
@@ -120,13 +180,16 @@ class Models:
         Devuelve un diccionario con instancias de todos los modelos implementados.
         """
         return {
-            "Logistic Regression": Models._logistic_regression(),
-            "Random Forest": Models._random_forest(),
-            "K-Nearest Neighbors": Models._k_nearest_neighbors(),
-            "SVM": Models._svm(),   
-            "Decision Tree": Models._decision_tree(),
+            # "Logistic Regression": Models._logistic_regression(),
+            # "Random Forest": Models._random_forest(),
+            # "K-Nearest Neighbors": Models._k_nearest_neighbors(),
+            # "SVM": Models._svm(),   
+            # "Decision Tree": Models._decision_tree(),
             # "Naive Bayes": Models._naive_bayes(),
-            # "XGBoost": Models._xgboost()
+            # "XGBoost": Models._xgboost(),
+            # "Extra Trees": Models.extra_trees(),
+            # "LightGBM": Models.lightgbm(),
+            "Deep FFNN": Models._deep_ffnn()
         }
     
     @staticmethod

@@ -35,14 +35,6 @@ bert_model = 'sri1208/mental_health_classifier'
 
 all_results = []
 
-def reduce_dimensionality_with_svd(embeddings, n_components):
-    """
-    Reduce la dimensionalidad de los embeddings con TruncatedSVD (LSA).
-    """
-    svd = TruncatedSVD(n_components=n_components, random_state=42)
-    reduced = svd.fit_transform(embeddings)
-    return reduced
-
 def extract_embeddings(text_list, batch_size=32):
     """
     Extrae embeddings de BERT para una lista de textos usando el modelo cargado.
@@ -87,8 +79,6 @@ X_train_reduced = pca.fit_transform(X_train_embeddings)
 # === Validación cruzada con modelos clásicos ===
 kf = KFold(n_splits=10, shuffle=True, random_state=50)
 models = Models.get_models()
-if "Naive Bayes" in models:
-    models.pop("Naive Bayes")  # Naive Bayes no funciona bien con embeddings densos
 
 results_cv = []
 roc_data = []
@@ -97,10 +87,19 @@ conf_matrices = []
 print("=== Testing con Validación Cruzada (MentalBERT) ===")
 for name, clf in models.items():
     print(f"\n🔍 Modelo: {name}")
+
+    if name == "Deep FFNN":
+        X_data = X_train_reduced
+        y_data = y_train.astype(np.float32).reshape(-1, 1)
+    else:
+        X_data = X_train_embeddings
+        y_data = y_train
+
     accuracies, f1s, precisions, recalls, aucs = [], [], [], [], []
-    for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_embeddings), start=1):
-        X_tr, X_val = X_train_embeddings[train_idx], X_train_embeddings[val_idx]
-        y_tr, y_val = y_train[train_idx], y_train[val_idx]
+
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X_data), start=1):
+        X_tr, X_val = X_data[train_idx], X_data[val_idx]
+        y_tr, y_val = y_data[train_idx], y_data[val_idx]
         clf.fit(X_tr, y_tr)
         y_pred = clf.predict(X_val)
         y_pred_proba = clf.predict_proba(X_val)[:, 1] if hasattr(clf, "predict_proba") else None
@@ -169,9 +168,15 @@ X_test_reduced = pca.transform(X_test_embeddings)   # Si usaste PCA
 print("\n=== Validación Final con Embeddings de MentalBERT ===")
 results_final = []
 for name, model in models.items():
-    model.fit(X_train_reduced, y_train)
-    y_pred = model.predict(X_test_reduced)
-    y_pred_proba = model.predict_proba(X_test_reduced)[:, 1] if hasattr(model, "predict_proba") else None
+
+    if name == "Deep FFNN":
+        model.fit(X_train_reduced, y_train.astype(np.float32).reshape(-1, 1))
+        y_pred = model.predict(X_test_reduced)
+        y_pred_proba = model.predict_proba(X_test_reduced)[:, 1] if hasattr(model, "predict_proba") else None
+    else:
+        model.fit(X_train_embeddings, y_train)
+        y_pred = model.predict(X_test_embeddings)
+        y_pred_proba = model.predict_proba(X_test_embeddings)[:, 1] if hasattr(model, "predict_proba") else None
 
     # Calcular métricas en test
     acc = accuracy_score(y_test, y_pred)

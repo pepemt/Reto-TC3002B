@@ -1,11 +1,12 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
-from imblearn.over_sampling import SMOTE
+from sklearn.linear_model import LogisticRegression # type: ignore
+from sklearn.ensemble import RandomForestClassifier # type: ignore
+from sklearn.svm import SVC # type: ignore
+from sklearn.tree import DecisionTreeClassifier # type: ignore
+from sklearn.naive_bayes import MultinomialNB # type: ignore
+from sklearn.neighbors import KNeighborsClassifier # type: ignore
+from sklearn.feature_extraction.text import TfidfVectorizer # type: ignore
+from sklearn.ensemble import ExtraTreesClassifier # type: ignore
+from imblearn.over_sampling import SMOTE # type: ignore
 import xgboost as xgb
 
 
@@ -57,7 +58,6 @@ class Models:
             class_weight='balanced'
         )
     
-    
     @staticmethod
     def k_nearest_neighbors():
         return KNeighborsClassifier(
@@ -85,6 +85,18 @@ class Models:
         return xgb.XGBClassifier(**default_params)
 
     @staticmethod
+    def extra_trees():
+        return ExtraTreesClassifier(
+            n_estimators=300,
+            max_depth=None,
+            min_samples_split=2,
+            min_samples_leaf=1,
+            max_features='sqrt',
+            bootstrap=False,
+            random_state=42
+        )
+
+    @staticmethod
     def get_models():
         return {
             "Logistic Regression": Models.logistic_regression(),
@@ -93,7 +105,8 @@ class Models:
             "SVM": Models.svm(),   
             "Decision Tree": Models.decision_tree(),
             "Naive Bayes": Models.naive_bayes(),
-            "XGBoost": Models.xgboost()
+            "XGBoost": Models.xgboost(),
+            "Extra Trees": Models.extra_trees()
         }
     
     @staticmethod

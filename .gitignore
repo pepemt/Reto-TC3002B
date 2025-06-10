@@ -35,8 +35,8 @@ build/
 
 # Data and model outputs
 *.log
-*.csv
-*.xlsx
+#*.csv
+#*.xlsx
 *.h5
 *.pth
 *.joblib
@@ -52,7 +52,7 @@ Thumbs.db
 Modelos_entrenados/
 
 # Ignore data folders if needed
-Data/
+# Data/
 
 # Ignore secrets (never commit real API keys!)
 *.env
